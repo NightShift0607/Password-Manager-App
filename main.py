@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import random
+import json
 
 
 # Random Password Generator
@@ -40,21 +41,48 @@ def save_password():
     user = user_name.get()
     pas = password.get()
     
-    is_ok = messagebox.askokcancel(title=name, message=f"These are the details entered: \nEmail: {user} \nPassword: {pas} \nIs it ok to save?")
+    is_ok = messagebox.askokcancel(title=name, message=f"These are the details entered: \nUsername: {user} \nPassword: {pas} \nIs it ok to save?")
+    
+    new_data = {
+        name: {
+            "Username": user,
+            "Password" : pas
+        }
+    }
     
     if is_ok:
-        with open("SavedPassword.txt","a") as data_file:
-            data_file.write(f"{name} | {user} | {pas}")
-            data_file.write("\n")
-        
-        website_name.delete(0, END)
-        user_name.delete(0, END)
-        user_name.insert(0, "NightShift0607")
-        password.delete(0,END)
+        try:
+            with open("SavedPasswords.json","r") as data_file:
+                old_data = json.load(data_file)
+                old_data.update(new_data)   
+        except FileNotFoundError:
+            with open("SavedPasswords.json","w") as data_file:
+                json.dump(new_data, data_file, indent=4)
+        else:
+            with open("SavedPasswords.json","w") as data_file:
+                json.dump(old_data, data_file, indent=4)
+        finally:
+            website_name.delete(0, END)
+            user_name.delete(0, END)
+            user_name.insert(0, "NightShift0607")
+            password.delete(0,END)
 
+#  Searching Password
 
+def search_website():
+    with open("SavedPasswords.json","r") as file:
+        data = json.load(file)
+    website = website_name.get()
+    
+    try:
+        result = data[website]
+    except KeyError:
+        messagebox.showinfo(title="Not Found", message="The website name you entered is not present.\nPlease make sure you have spelled it right")
+    else:
+        messagebox.showinfo(title=website, message=f"Username: {result["Username"]} \nPassword: {result["Password"]}")
 
 # UI Setup
+
 window = Tk()
 window.title("Password Manager")
 window.config(padx=50, pady=50)
@@ -67,9 +95,11 @@ canvas.create_image(100, 100, image=icon)
 canvas.grid(row=0, column=1)
 website_label = Label(text="Website:")
 website_label.grid(row=1, column=0)
-website_name = Entry(width=45)
+website_name = Entry(width=27)
 website_name.focus()
-website_name.grid(row=1, column=1, columnspan=2)
+website_name.grid(row=1, column=1)
+search_pass_btn = Button(text="Search Website", command=search_website, width=14)
+search_pass_btn.grid(row=1, column=2)
 user_label = Label(text="Email/Username:")
 user_label.grid(row=2, column=0)
 user_name = Entry(width=45)
